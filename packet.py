@@ -5,9 +5,10 @@ into class member fields so that we can access them easily.
 
 """
 
-from struct import *
+from struct import unpack
 import socket
 from abc import ABC, ABCMeta, abstractmethod
+from time import time
 from tabulate import tabulate
 
 # A list of IP Protocol numbers, taken directly from IANA.
@@ -93,7 +94,6 @@ PROTO_NUMS = {
     81: 'VMTP',
     82: 'SECURE-VMTP',
     83: 'VINES',
-    84: 'TTP',
     84: 'IPTM',
     85: 'NSFNET-IGP',
     86: 'DGP',
@@ -173,6 +173,7 @@ def to_tuple(ippacket, flip=False):
         tup = None
     return tup
 
+
 class Packet(metaclass=ABCMeta):
 
     @abstractmethod
@@ -183,7 +184,17 @@ class Packet(metaclass=ABCMeta):
     def get_data_len(self):
         pass
 
+    @abstractmethod
+    def get_src_ip(self):
+        pass
 
+    @abstractmethod
+    def get_dst_ip(self):
+        pass
+
+    @abstractmethod
+    def get_timestamp(self):
+        pass
 class TransportLayerPacket(Packet):
     """Base class packets at the transport layer """
     __metaclass__ = ABCMeta
@@ -204,15 +215,18 @@ class TransportLayerPacket(Packet):
     def get_dst_port(self):
         pass
 
+    
+
 
 class IPPacket(Packet):
     """Base class for all packets"""
 
-    def __init__(self, buff):
+    def __init__(self, buff,timestamp):
         """Create packet from raw data."""
+        self.timestamp = timestamp
         self._buff = buff[:]
         ip_header = self._buff[0:20]
-        self._iph = unpack('!BBHHHBBH4s4s' , ip_header)
+        self._iph = unpack('!BBHHHBBH4s4s', ip_header)
         # Internal Header Length, in bytes
         self._version = self._iph[0] >> 4
         self._iph_length = (self._iph[0] & 0xF) * 4
@@ -220,13 +234,17 @@ class IPPacket(Packet):
         self._protocol = PROTO_NUMS.get(self._iph[6], 'UNKNOWN')
         self._src_ip = socket.inet_ntoa(self._iph[8])
         self._dst_ip = socket.inet_ntoa(self._iph[9])
-        self._transport_layer_pdu = self.payload_builder(self._buff[self._iph_length:], self._protocol)
+        self._transport_layer_pdu = self.payload_builder(
+            self._buff[self._iph_length:], self._protocol)
 
     def get_src_ip(self):
         return self._src_ip
 
     def get_dst_ip(self):
         return self._dst_ip
+
+    def get_timestamp(self):
+        return self.timestamp
 
     def get_protocol(self):
         """Return name of protocol of payload of packet."""
@@ -241,12 +259,12 @@ class IPPacket(Packet):
     def get_data_len(self):
         return len(self._buff) - self._iph_length
 
-    def payload_builder(self,payload_buff, protocol):
+    def payload_builder(self, payload_buff, protocol):
         """If `protocol` is supported, builds packet object from buff."""
         if protocol == PROTO_NUMS.get(socket.IPPROTO_TCP):
-            return TCPPacket(payload_buff)
+            return TCPPacket(payload_buff, self._src_ip, self._dst_ip, self.timestamp)
         elif protocol == PROTO_NUMS.get(socket.IPPROTO_UDP):
-            return UDPPacket(payload_buff)
+            return UDPPacket(payload_buff, self._src_ip, self._dst_ip, self.timestamp)
         else:
             return None
 
@@ -258,15 +276,17 @@ class IPPacket(Packet):
 class TCPPacket(TransportLayerPacket):
     """TCP Packet object."""
 
-    def __init__(self, buff):
+    def __init__(self, buff, src_ip, dst_ip, timestamp):
+        self._src_ip, self._dst_ip = src_ip, dst_ip
+        self.timestamp = timestamp 
         self._buff = buff[:]
-        self._tcph = unpack('!HHLLBBHHH' ,self._buff[:20])
+        self._tcph = unpack('!HHLLBBHHH', self._buff[:20])
         self._src_port, self._dst_port = self._tcph[0], self._tcph[1]
         self._seq_num, self._ack_num = self._tcph[2], self._tcph[3]
         flags = self._tcph[4]
         self._tcph_length = (self._tcph[4] >> 4) * 4
         self._data_offset = (flags & 0xF000) >> 12
-        self.flag_ns  = (flags & 0x0100) >> 8
+        self.flag_ns = (flags & 0x0100) >> 8
         self.flag_cwr = (flags & 0x0080) >> 7
         self.flag_ece = (flags & 0x0040) >> 6
         self.flag_urg = (flags & 0x0020) >> 5
@@ -281,7 +301,7 @@ class TCPPacket(TransportLayerPacket):
 
     def get_data_len(self):
         return self._data_len
-        
+
     def get_raw_packet(self):
         return self._buff
 
@@ -291,11 +311,20 @@ class TCPPacket(TransportLayerPacket):
     def get_src_port(self):
         return self._src_port
 
+    def get_timestamp(self):
+        return self.timestamp
+
     def get_dst_port(self):
         return self._dst_port
 
     def get_body(self):
         return str(self._body)
+
+    def get_src_ip(self):
+        return self._src_ip
+
+    def get_dst_ip(self):
+        return self._dst_ip
 
     # def __unicode__(self):
     #     """Returns a printable version of the TCP header"""
@@ -305,10 +334,9 @@ class TCPPacket(TransportLayerPacket):
 class UDPPacket(TransportLayerPacket):
     """UDP Packet object."""
 
-    def __init__(self, buff):
-        self._parse_header(buff)
-
-    def _parse_header(self, buff):
+    def __init__(self, buff, src_ip, dst_ip, timestamp):
+        self._src_ip, self._dst_ip = src_ip, dst_ip
+        self.timestamp = timestamp
         self._src_port, self._dst_port = unpack('!HH', buff[0:4])
         self._length, self._checksum = unpack('!HH', buff[4:8])
         self._total_length = len(buff)
@@ -316,6 +344,9 @@ class UDPPacket(TransportLayerPacket):
 
     def get_header_len(self):
         return 8
+
+    def get_timestamp(self):
+        return self.timestamp
 
     def get_data_len(self):
         return self._total_length - self.get_header_len()
@@ -328,6 +359,12 @@ class UDPPacket(TransportLayerPacket):
 
     def get_body(self):
         return str(self._body)
+
+    def get_src_ip(self):
+        return self._src_ip
+
+    def get_dst_ip(self):
+        return self._dst_ip
 
     # def __unicode__(self):
     #     """Returns a printable version of the UDP header"""

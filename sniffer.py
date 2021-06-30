@@ -1,14 +1,21 @@
+from os import times
 import socket
 import sys
-from packet import IPPacket, TCPPacket, TransportLayerPacket, UDPPacket
-from struct import *
 from prettytable import PrettyTable
+from threading import Thread
+from multiprocessing import Queue
+import time
 
-
+from packet import IPPacket, TCPPacket, TransportLayerPacket, UDPPacket
+from blocker import Blocker
 class Sniffer():
 
     def __init__(self):
         print("Created sniffer object")
+        self.blocker_queue = Queue()
+
+        host_ip = self.get_ip_address()
+        self.blocker = Blocker(host_ip)
 
     def print_packet_info(self, ip_packet:IPPacket, pdu:TransportLayerPacket):
         parameters = [ip_packet.get_src_ip(), ip_packet.get_dst_ip(), ip_packet.get_protocol(),
@@ -18,6 +25,18 @@ class Sniffer():
         table.add_row(parameters)
         print(table)
 
+    def print_packet_data(self, pdu:TransportLayerPacket):
+        headers = ["Payload"]
+        parameters = [pdu.get_body()]
+        table = PrettyTable(headers)
+        table.add_row(parameters)
+        print(table)
+
+    def get_ip_address(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+
     def run(self):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
@@ -25,17 +44,22 @@ class Sniffer():
             print(f"Socket could not be created. Error Code: {msg}")
             sys.exit()
 
+        # Run blocker in new thread
+        self.blocker.init_queue(self.blocker_queue)
+        self.block_thread = Thread(target=self.blocker.run, daemon=True)
+        self.block_thread.start()
+
         while True:
             packet = s.recvfrom(65565)
-
+            timestamp = time.time_ns()
             # packet string from tuple
             packet = packet[0]
 
-            ip_packet = IPPacket(packet)
+            ip_packet = IPPacket(packet,timestamp)
             transport_layer_pdu = ip_packet.get_transport_layer_pdu()
+            # self.print_packet_info(ip_packet, transport_layer_pdu)
+            # self.print_packet_data(transport_layer_pdu)
 
-
-            self.print_packet_info(ip_packet, transport_layer_pdu)
-            
+            self.blocker_queue.put(transport_layer_pdu)
 
         print("Running")
