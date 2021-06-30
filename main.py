@@ -8,7 +8,11 @@ log.setLevel(logging.DEBUG)
 
 def main():
     sniffer = Sniffer()
-    sniffer.run()
+    try:
+        sniffer.run()
+    except KeyboardInterrupt as e:
+        print(str(e))
+        sniffer.stop()
 
 def test():
     import subprocess
@@ -27,17 +31,18 @@ if __name__ == '__main__':
 
     # Log to file
 
-    logfile_name = os.path.join(os.getcwd(),args.filename) 
+    logfile_name = os.path.join(os.getcwd(),"logs",args.filename) 
+    logfile_formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     filehandler = logging.FileHandler(logfile_name)
     filehandler.setLevel(logging.DEBUG)
-    filehandler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+    filehandler.setFormatter(logfile_formatter)
     log.addHandler(filehandler)
 
     # Log to stdout too
-    # streamhandler = logging.StreamHandler()
-    # streamhandler.setLevel(logging.INFO)
-    # streamhandler.setFormatter(formatter)
-    # log.addHandler(streamhandler)
+    streamhandler = logging.StreamHandler()
+    streamhandler.setLevel(logging.INFO)
+    streamhandler.setFormatter(logfile_formatter)
+    log.addHandler(streamhandler)
 
     main()
     # test()

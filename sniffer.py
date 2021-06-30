@@ -1,3 +1,4 @@
+from logging import log
 from os import times
 import socket
 import sys
@@ -5,15 +6,17 @@ from prettytable import PrettyTable
 from threading import Thread
 from multiprocessing import Queue
 import time
-
+import logging
 from packet import IPPacket, TCPPacket, TransportLayerPacket, UDPPacket
 from blocker import Blocker
+
+log = logging.getLogger("mylog")
 class Sniffer():
 
     def __init__(self):
         print("Created sniffer object")
         self.blocker_queue = Queue()
-
+        self.socket = None
         host_ip = self.get_ip_address()
         self.blocker = Blocker(host_ip)
 
@@ -38,19 +41,20 @@ class Sniffer():
         return s.getsockname()[0]
 
     def run(self):
+        print("Running")
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         except socket.error as msg:
             print(f"Socket could not be created. Error Code: {msg}")
             sys.exit()
 
         # Run blocker in new thread
         self.blocker.init_queue(self.blocker_queue)
-        self.block_thread = Thread(target=self.blocker.run, daemon=True)
+        self.block_thread = Thread(target=self.blocker.run, daemon=False)
         self.block_thread.start()
 
         while True:
-            packet = s.recvfrom(65565)
+            packet = self.socket.recvfrom(65565)
             timestamp = time.time_ns()
             # packet string from tuple
             packet = packet[0]
@@ -62,4 +66,6 @@ class Sniffer():
 
             self.blocker_queue.put(transport_layer_pdu)
 
-        print("Running")
+    def stop(self):
+        self.socket.close()
+        log.warn(f"[SNIFFER]: CTRL+C detected. Stopping program.")

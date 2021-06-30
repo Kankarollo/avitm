@@ -195,6 +195,8 @@ class Packet(metaclass=ABCMeta):
     @abstractmethod
     def get_timestamp(self):
         pass
+
+
 class TransportLayerPacket(Packet):
     """Base class packets at the transport layer """
     __metaclass__ = ABCMeta
@@ -318,7 +320,7 @@ class TCPPacket(TransportLayerPacket):
         return self._dst_port
 
     def get_body(self):
-        return str(self._body)
+        return self._body
 
     def get_src_ip(self):
         return self._src_ip
@@ -358,7 +360,7 @@ class UDPPacket(TransportLayerPacket):
         return self._dst_port
 
     def get_body(self):
-        return str(self._body)
+        return self._body
 
     def get_src_ip(self):
         return self._src_ip
