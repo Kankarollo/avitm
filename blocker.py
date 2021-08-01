@@ -54,19 +54,18 @@ class Blocker():
                 self.session_database[tup] = [transport_layer_pdu]
                 print(f"NEW SESSION: {tup}")
             if len(self.session_database[tup]) >= 50:
-                if self.is_session_malicious(self.session_database[tup]):
-                    # Don't accidentally block your own ip
-                    malicious_ip = src_ip if src_ip != self.host_ip else dst_ip
-                    self.block_ip(malicious_ip)
+                # Don't accidentally block your own ip
+                session_ip = src_ip if src_ip != self.host_ip else dst_ip
+                if self.is_session_malicious(self.session_database[tup], session_ip):
+                    self.block_ip(session_ip)
                     # Release resources
                 del self.session_database[tup]
 
-    def is_session_malicious(self, session):
+    def is_session_malicious(self, session, session_ip):
         payload = b''
-        session_time = 0.0
+        session_time = session[-1].get_timestamp() - session[0].get_timestamp()
         for pdu in session:
             payload += pdu.get_body()
-            session_time = session[-1].get_timestamp() - session[0].get_timestamp()
         
         byte_size = len(payload)
 

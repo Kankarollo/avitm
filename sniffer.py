@@ -1,5 +1,4 @@
 from logging import log
-from os import times
 import socket
 import sys
 from prettytable import PrettyTable
