@@ -5,6 +5,7 @@ from queue import Queue
 import subprocess
 from packet import TransportLayerPacket
 import logging
+from analyzer import Analyzer
 
 log = logging.getLogger("mylog")
 
@@ -52,8 +53,9 @@ class Blocker():
                 self.session_database[tup].append(transport_layer_pdu)
             else:
                 self.session_database[tup] = [transport_layer_pdu]
-                print(f"NEW SESSION: {tup}")
+                log.info(f"NEW SESSION: {tup}")
             if len(self.session_database[tup]) >= 50:
+                log.debug(f"ANALYZING SESSION: {tup}")
                 # Don't accidentally block your own ip
                 session_ip = src_ip if src_ip != self.host_ip else dst_ip
                 if self.is_session_malicious(self.session_database[tup], session_ip):
@@ -67,13 +69,19 @@ class Blocker():
         for pdu in session:
             payload += pdu.get_body()
         
-        byte_size = len(payload)
 
+        analyzer = Analyzer()
+        # if analyzer.is_safe_protocol(session):
+        #     return False
+        if not analyzer.is_encrypted(payload):
+            return False
+        if analyzer.ai_analysis(session_time,session, session_ip):
+            return True
         # if pdu.get_src_port() == 23 or pdu.get_dst_port() == 23:
         #     print(f"Session Payload: {payload}")
 
-        if b'dupa' in payload:
-            return True
+        # if b'dupa' in payload:
+        #     return True
 
         return False
 
