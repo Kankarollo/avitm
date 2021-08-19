@@ -1,32 +1,33 @@
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-import joblib
+import xgboost
 import json
-import numpy as np
 import pandas as pd
+import numpy as np
+from sklearn.metrics import accuracy_score
 
-
-MODEL_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/model_random_forest_classifier.joblib"
-JSON_BENIGN_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/benign_summary_v20.json"
-JSON_MALWARE_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/malware_summary_v20.json"
+MODEL_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/xgBoostTest/model-xgboost.json"
+JSON_BENIGN_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/benignSamples/benign_summary_v20.json"
+JSON_MALWARE_FILENAME = "/home/epiflight/Desktop/avitm/recognizerAI/malwareSamples/malware_summary_v20.json"
 
 def main():
-    rf_model = joblib.load(MODEL_FILENAME)
+    xgboost_model = xgboost.XGBClassifier()
+    xgboost_model.load_model(MODEL_FILENAME)
 
     data_to_predict = {}
-    with open(JSON_MALWARE_FILENAME,'r') as f:
+    with open(JSON_BENIGN_FILENAME,'r') as f:
         data_to_predict = json.load(f)
 
     prepared_data = prepare_data(data_to_predict)
 
-    y = rf_model.predict(prepared_data)
+    y_pred = xgboost_model.predict(prepared_data)
+    predictions = [round(value) for value in y_pred]
 
-    percent = float(len([x for x in y if x =='1']))/len(y)
+    percent = float(len([x for x in predictions if x == 1]))/len(predictions)*100
 
     print("------------SUMMARY----------")
-    print(y)
-    print(f"Success rate:{percent}")
+    print(predictions)
+    print(f"Success rate:{percent}%")
+
+
 def prepare_data(data):
     prepared_data = {}
 
@@ -50,8 +51,6 @@ def prepare_data(data):
     df = pd.DataFrame(dataset, columns=["Server_port","Bytes_client_server", "Bytes_server_client", "Session_time", "Addr_in_DNS", "Session_type"])
 
     prepared_data = df.iloc[:,0:5]
-    sc = StandardScaler()
-    prepared_data = sc.fit_transform(prepared_data)
 
     return prepared_data
 

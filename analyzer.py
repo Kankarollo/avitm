@@ -62,18 +62,20 @@ class Analyzer():
     def ai_analysis(self, session_time,session, session_ip, session_port):
         log.info("Analyzing payload with AI...")
         try:
-            self.ai_analyzer.load_model("/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/model_random_forest_classifier.joblib")
+            # self.ai_analyzer.load_RandomForest_model("/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/model_random_forest_classifier.joblib")
+            self.ai_analyzer.load_xgboost_model("/home/epiflight/Desktop/avitm/recognizerAI/xgBoostTest/model-xgboost.json")
         except Exception as e:
             log.error(f"AI analysis failed: {e}")
             return False
 
         prepared_data = self.prepare_session_data(session, session_time, session_ip, session_port)
-        prediction = self.ai_analyzer.analyze_session(prepared_data)
+        # prediction = self.ai_analyzer.analyze_session_RandomForest(prepared_data)
+        prediction = self.ai_analyzer.analyze_session_xgboost(prepared_data)
 
-        if prediction[0] =='1':
+        if prediction[0] =='1' or prediction[0] == 0:
             log.warning(f"Session with {session_ip} is NOT secure.")
             return True
-        elif prediction[0] == '0':
+        elif prediction[0] == '0' or prediction[0] == 1:
             log.info(f"Session with {session_ip} is secure.")
             return False
         else:
