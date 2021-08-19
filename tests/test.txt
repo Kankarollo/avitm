@@ -1,2 +1,0 @@
-2021-06-27 23:26:46,455 | mylog | DEBUG | [COMMAND:] sudo iptables -A OUTPUT -s 192.168.0.130 -j DROP
-2021-06-27 23:26:55,418 | mylog | DEBUG | [COMMAND:] sudo iptables -D OUTPUT -s 192.168.0.130 -j DROP
