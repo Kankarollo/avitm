@@ -1,5 +1,6 @@
 from sniffer import Sniffer
 from argparse import ArgumentParser
+import datetime
 import logging
 import os
 
@@ -28,10 +29,12 @@ if __name__ == '__main__':
     parser.add_argument("filename", metavar='f', type=str, help="Filename of logging file.")
 
     args = parser.parse_args()
-
-    # Log to file
-
-    logfile_name = os.path.join(os.getcwd(),"logs",args.filename) 
+    if not args.filename:
+        today_date = datetime.datetime.today().strftime("%Y-%m-%d")
+        logfile_name = f"logs/{today_date}.log" 
+    else:
+        logfile_name = os.path.join(os.getcwd(),"logs",args.filename)
+    
     logfile_formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     filehandler = logging.FileHandler(logfile_name)
     filehandler.setLevel(logging.DEBUG)

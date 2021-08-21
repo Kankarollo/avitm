@@ -53,21 +53,3 @@ class ProtocolClassifier:
         """Check if packet is using OpenVPN. Temporarily classifying based only on src and dst ports."""
         return ((tcp_packet.get_src_port()==80 or tcp_packet.get_dst_port()==80) or 
             (tcp_packet.get_src_port()==8080 or tcp_packet.get_dst_port()==8080))
-
-
-def main():
-    print("[TEST]: Executing testing program. Check if classifier is working correctly.")
-    # packets = rdpcap("test_pcap_files/tcp_packets_test.pcap")
-    packets = rdpcap("utils/test_pcap_files/tlsPackets_test.pcap")
-    for packet in packets:
-        if packet.haslayer(TLS):
-            print("[DEBUG]: TLS HERE!!!")
-        else:
-            print("[DEBUG]: TLS NOT FOUND!!!")
-
-def test():
-    print("[TEST]: This is test method for testing purpose.")
-
-if __name__ == '__main__':
-    # main()
-    test()
