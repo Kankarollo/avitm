@@ -20,11 +20,6 @@ class Blocker():
     def __del__(self):
         self.clean_iptables()
 
-    def heartbeat(self):
-        while True:
-            print("Just chillin...")
-            sleep(0.5)
-
     def init_queue(self, queue: Queue):
         self.queue = queue
 
@@ -77,7 +72,7 @@ class Blocker():
         #     return False
         if not analyzer.is_encrypted(payload):
             return False
-        if analyzer.ai_analysis(session_time, session, session_ip, session_port):
+        if analyzer.ai_analysis(session_time, session, session_ip, session_port, payload):
             return True
 
         return False

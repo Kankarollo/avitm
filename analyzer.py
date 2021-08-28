@@ -1,3 +1,4 @@
+import time
 from ai_analyzer import AIanalyzer
 import math
 import socket
@@ -10,7 +11,8 @@ import pandas as pd
 log = logging.getLogger("mylog")
 
 class Analyzer():
-    SAFE_PROTOCOLS = [TCP_APPLICATION_PROTOCOLS.TLS,TCP_APPLICATION_PROTOCOLS.SSH,TCP_APPLICATION_PROTOCOLS.OPENVPN, TCP_APPLICATION_PROTOCOLS.HTTP]
+    SAFE_PROTOCOLS = [TCP_APPLICATION_PROTOCOLS.TLS,TCP_APPLICATION_PROTOCOLS.SSH,
+        TCP_APPLICATION_PROTOCOLS.OPENVPN, TCP_APPLICATION_PROTOCOLS.HTTP]
 
     def __init__(self):
         self.ai_analyzer = AIanalyzer()
@@ -32,10 +34,15 @@ class Analyzer():
         entropy = self.calculate_entropy(payload)
         if entropy > 5.0:
             log.info(f"Payload is encrypted.")
-            # hedge = Hedge()
-            # results = hedge.execute_tests(payload)
-            # return hedge.is_encrypted(results)
-            return True
+            hedge = Hedge()
+            start = time.time()
+            results = hedge.execute_tests(payload)
+            end = time.time()
+            time_for_tests = end - start
+            log.info(f"[DEBUG]: Payload length = {len(payload)}")
+            log.info(f"[DEBUG]:Time for tests: {time_for_tests}")
+            return hedge.is_encrypted(results)
+            # return True
         log.info(f"Payload is NOT encrypted.")
         log.info(f"[DEBUG]:Entropy level: {entropy}")
         return False
@@ -60,16 +67,16 @@ class Analyzer():
 
         return entropy
 
-    def ai_analysis(self, session_time,session, session_ip, session_port):
+    def ai_analysis(self, session_time,session, session_ip, session_port, payload):
         log.info("Analyzing payload with AI...")
         try:
-            self.ai_analyzer.load_RandomForest_model("/home/epiflight/Desktop/avitm/recognizerAI/RandomForestTest/model_random_forest_classifier.joblib")
-            # self.ai_analyzer.load_xgboost_model("/home/epiflight/Desktop/avitm/recognizerAI/xgBoostTest/model-xgboost.json")
+            self.ai_analyzer.load_RandomForest_model("/home/epiflight/Desktop/avitm/recognizerAI/RandomForest/model_random_forest_classifier.joblib")
+            # self.ai_analyzer.load_xgboost_model("/home/epiflight/Desktop/avitm/recognizerAI/xgBoost/model-xgboost.json")
         except Exception as e:
             log.error(f"AI analysis failed: {e}")
             return False
 
-        prepared_data = self.prepare_session_data(session, session_time, session_ip, session_port)
+        prepared_data = self.prepare_session_data(session, session_time, session_ip, session_port, payload)
         prediction = self.ai_analyzer.analyze_session_RandomForest(prepared_data)
         # prediction = self.ai_analyzer.analyze_session_xgboost(prepared_data)
 
@@ -82,14 +89,20 @@ class Analyzer():
         else:
             raise ValueError('Wrong value returned from model')
 
-    def prepare_session_data(self, session, session_time, session_ip, session_port):
+    def prepare_session_data(self, session, session_time, session_ip, session_port, payload):
         dataset = []
         addr_in_DNS = 1 if self.is_ip_addr_in_DNS(session_ip) else 0
 
-        """TODO"""
+        entropy = self.calculate_entropy(payload)
+
         bytes_client_server = 0
         bytes_server_client = 0
-
+        for tcp_packet in session:
+            if tcp_packet.get_src_ip() == session_ip:
+                bytes_server_client += len(tcp_packet.get_body())
+            else:
+                bytes_client_server += len(tcp_packet.get_body())
+    
         dataset.append([session_port,bytes_client_server, bytes_server_client, session_time, addr_in_DNS])
         df = pd.DataFrame(dataset, columns=["Server_port","Bytes_client_server", "Bytes_server_client", "Session_time", "Addr_in_DNS"])
 

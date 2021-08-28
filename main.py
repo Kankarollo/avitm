@@ -26,14 +26,12 @@ def test():
 
 if __name__ == '__main__':
     parser =  ArgumentParser()
-    parser.add_argument("filename", metavar='f', type=str, help="Filename of logging file.")
+    parser.add_argument("filename", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), 
+        help="Filename of logging file (Default: today's date).")
+    # parser.add_argument("--hedge", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), help="Filename of logging file (Default: today's date).")
 
     args = parser.parse_args()
-    if not args.filename:
-        today_date = datetime.datetime.today().strftime("%Y-%m-%d")
-        logfile_name = f"logs/{today_date}.log" 
-    else:
-        logfile_name = os.path.join(os.getcwd(),"logs",args.filename)
+    logfile_name = os.path.join(os.getcwd(),"logs",args.filename)
     
     logfile_formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     filehandler = logging.FileHandler(logfile_name)
