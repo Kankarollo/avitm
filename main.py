@@ -7,8 +7,8 @@ import os
 log = logging.getLogger("mylog")
 log.setLevel(logging.DEBUG)
 
-def main():
-    sniffer = Sniffer()
+def main(hedge):
+    sniffer = Sniffer(hedge)
     try:
         sniffer.run()
     except KeyboardInterrupt as e:
@@ -28,6 +28,8 @@ if __name__ == '__main__':
     parser =  ArgumentParser()
     parser.add_argument("filename", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), 
         help="Filename of logging file (Default: today's date).")
+    parser.add_argument("--hedge", default=False, dest='hedge', action='store_true', 
+        help="Option for using analyzing packets with HEDGE.")
     # parser.add_argument("--hedge", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), help="Filename of logging file (Default: today's date).")
 
     args = parser.parse_args()
@@ -45,5 +47,5 @@ if __name__ == '__main__':
     streamhandler.setFormatter(logfile_formatter)
     log.addHandler(streamhandler)
 
-    main()
+    main(args.hedge)
     # test()

@@ -29,19 +29,23 @@ class Analyzer():
         log.info(f"Protocol is NOT secure.")
         return False
 
-    def is_encrypted(self, payload):
+    def is_encrypted(self, payload, hedge_flag=False):
         log.info(f"Analyzing encryption level...")
         entropy = self.calculate_entropy(payload)
         if entropy > 5.0:
             log.info(f"Payload is encrypted.")
-            hedge = Hedge()
-            start = time.time()
-            results = hedge.execute_tests(payload)
-            end = time.time()
-            time_for_tests = end - start
-            log.info(f"[DEBUG]: Payload length = {len(payload)}")
-            log.info(f"[DEBUG]:Time for tests: {time_for_tests}")
-            return hedge.is_encrypted(results)
+            if hedge_flag:
+                log.info(f"HEDGE flag detected. Analyzing with HEDGE...")
+                hedge = Hedge()
+                start = time.time()
+                results = hedge.execute_tests(payload)
+                end = time.time()
+                time_for_tests = end - start
+                log.info(f"[DEBUG]: Payload length = {len(payload)}")
+                log.info(f"[DEBUG]:Time for tests: {time_for_tests}")
+                return hedge.is_encrypted(results)
+            else:
+                return True
             # return True
         log.info(f"Payload is NOT encrypted.")
         log.info(f"[DEBUG]:Entropy level: {entropy}")
@@ -70,8 +74,8 @@ class Analyzer():
     def ai_analysis(self, session_time,session, session_ip, session_port, payload):
         log.info("Analyzing payload with AI...")
         try:
-            self.ai_analyzer.load_RandomForest_model("/home/epiflight/Desktop/avitm/recognizerAI/RandomForest/model_random_forest_classifier.joblib")
-            # self.ai_analyzer.load_xgboost_model("/home/epiflight/Desktop/avitm/recognizerAI/xgBoost/model-xgboost.json")
+            self.ai_analyzer.load_RandomForest_model("recognizerAI/RandomForest/model_random_forest_classifier.joblib")
+            # self.ai_analyzer.load_xgboost_model("recognizerAI/xgBoost/model-xgboost.json")
         except Exception as e:
             log.error(f"AI analysis failed: {e}")
             return False

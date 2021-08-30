@@ -16,12 +16,16 @@ class Blocker():
         self.block_list = []
         self.host_ip = host_ip
         self.session_database = {}
+        self.hedge = False
 
     def __del__(self):
         self.clean_iptables()
 
     def init_queue(self, queue: Queue):
         self.queue = queue
+
+    def set_hedge_flag(self,hedge):
+        self.hedge = hedge
 
     def run(self):
         while True:
@@ -42,7 +46,8 @@ class Blocker():
             # Packets in two directions belong to the same session
             tup = (src_ip, src_port, dst_ip, dst_port)
             flip_tup = (dst_ip, dst_port, src_ip, src_port)
-
+            if src_ip == '127.0.0.1' and dst_ip == '127.0.0.1':
+                continue
             if tup in self.session_database:
                 self.session_database[tup].append(transport_layer_pdu)
             elif flip_tup in self.session_database:
@@ -52,7 +57,7 @@ class Blocker():
                 self.session_database[tup] = [transport_layer_pdu]
                 log.info(f"NEW SESSION: {tup}")
             if len(self.session_database[tup]) >= 50:
-                log.debug(f"ANALYZING SESSION: {tup}")
+                log.info(f"ANALYZING SESSION: {tup}")
                 # Don't accidentally block your own ip
                 session_ip = src_ip if src_ip != self.host_ip else dst_ip
                 session_port = src_port if src_ip != self.host_ip else dst_port
@@ -68,9 +73,9 @@ class Blocker():
             payload += pdu.get_body()
 
         analyzer = Analyzer()
-        # if analyzer.is_safe_protocol(session):
-        #     return False
-        if not analyzer.is_encrypted(payload):
+        if analyzer.is_safe_protocol(session):
+            return False
+        if not analyzer.is_encrypted(payload, hedge_flag=self.hedge):
             return False
         if analyzer.ai_analysis(session_time, session, session_ip, session_port, payload):
             return True
@@ -79,14 +84,14 @@ class Blocker():
 
     def block_ip(self, ip):
         log.info(f"Blocked IP: {ip}")
-        if self.validate_ip(ip):
-            subprocess.call(["sudo", "iptables", "-A",
-                            "INPUT", "-s", ip, "-j", "DROP"])
-            subprocess.call(["sudo", "iptables", "-A",
-                            "OUTPUT", "-s", ip, "-j", "DROP"])
-            self.block_list.append(ip)
-        else:
-            log.warn(f"INVALID IP: {ip}")
+        # if self.validate_ip(ip):
+        #     subprocess.call(["sudo", "iptables", "-A",
+        #                     "INPUT", "-s", ip, "-j", "DROP"])
+        #     subprocess.call(["sudo", "iptables", "-A",
+        #                     "OUTPUT", "-s", ip, "-j", "DROP"])
+        #     self.block_list.append(ip)
+        # else:
+        #     log.warn(f"INVALID IP: {ip}")
 
     def clean_iptables(self):
         for ip in self.block_list:
