@@ -35,7 +35,7 @@ class Blocker():
         whitelist_list = []
         try:
             with open(filename, 'r') as file:
-                whitelist_list = [line for line in file.readlines() if self.validate_ip(line)]
+                whitelist_list = [line.strip() for line in file.readlines() if self.validate_ip(line.strip())]
         except Exception as e:
             log.error(str(e))
             return []
@@ -45,6 +45,9 @@ class Blocker():
 
 
     def run(self):
+        whitelist = []
+        if self.whitelist_filename:
+            whitelist = self.init_whitelist(self.whitelist_filename)
         while True:
             transport_layer_pdu = None
             try:
@@ -55,9 +58,6 @@ class Blocker():
                 self.stop()
                 return
 
-            whitelist = []
-            if self.whitelist_filename:
-                whitelist = self.init_whitelist(self.whitelist_filename)
 
             src_ip = transport_layer_pdu.get_src_ip()
             src_port = transport_layer_pdu.get_src_port()

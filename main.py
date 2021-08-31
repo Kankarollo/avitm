@@ -33,11 +33,11 @@ def test():
 
 if __name__ == '__main__':
     parser =  ArgumentParser()
-    parser.add_argument("--filename", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), 
+    parser.add_argument("-f", "--filename", type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), 
         help="Filename of logging file (Default: today's date).")
     parser.add_argument("--hedge", default=False, dest='hedge', action='store_true', 
         help="Option for using analyzing packets with HEDGE.")
-    parser.add_argument("--whitelist", metavar='w', type=str, dest='whitelist', 
+    parser.add_argument("-w", "--whitelist",type=str, dest='whitelist', 
         help="Path to file for whitelisting IPs.")
     # parser.add_argument("--hedge", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), help="Filename of logging file (Default: today's date).")
 
