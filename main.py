@@ -7,8 +7,15 @@ import os
 log = logging.getLogger("mylog")
 log.setLevel(logging.DEBUG)
 
-def main(hedge):
-    sniffer = Sniffer(hedge)
+def main(args):
+    hedge = False
+    whitelist = None
+    if args.hedge:
+        hedge = args.hedge
+    if args.whitelist:
+        whitelist = args.whitelist
+    sniffer = Sniffer(hedge, whitelist=whitelist)
+
     try:
         sniffer.run()
     except KeyboardInterrupt as e:
@@ -30,6 +37,8 @@ if __name__ == '__main__':
         help="Filename of logging file (Default: today's date).")
     parser.add_argument("--hedge", default=False, dest='hedge', action='store_true', 
         help="Option for using analyzing packets with HEDGE.")
+    parser.add_argument("--whitelist", metavar='w', type=str, dest='whitelist', 
+        help="Path to file for whitelisting IPs.")
     # parser.add_argument("--hedge", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), help="Filename of logging file (Default: today's date).")
 
     args = parser.parse_args()
@@ -47,5 +56,5 @@ if __name__ == '__main__':
     streamhandler.setFormatter(logfile_formatter)
     log.addHandler(streamhandler)
 
-    main(args.hedge)
+    main(args)
     # test()

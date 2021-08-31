@@ -17,6 +17,7 @@ class Blocker():
         self.host_ip = host_ip
         self.session_database = {}
         self.hedge = False
+        self.whitelist_filename = None
 
     def __del__(self):
         self.clean_iptables()
@@ -26,6 +27,22 @@ class Blocker():
 
     def set_hedge_flag(self,hedge):
         self.hedge = hedge
+
+    def set_whitelist_file(self, whitelist):
+        self.whitelist_filename=whitelist
+
+    def init_whitelist(self, filename):
+        whitelist_list = []
+        try:
+            with open(filename, 'r') as file:
+                whitelist_list = [line for line in file.readlines() if self.validate_ip(line)]
+        except Exception as e:
+            log.error(str(e))
+            return []
+        
+        log.info(f"Whitelist Initialized: {whitelist_list}")
+        return whitelist_list
+
 
     def run(self):
         while True:
@@ -38,6 +55,10 @@ class Blocker():
                 self.stop()
                 return
 
+            whitelist = []
+            if self.whitelist_filename:
+                whitelist = self.init_whitelist(self.whitelist_filename)
+
             src_ip = transport_layer_pdu.get_src_ip()
             src_port = transport_layer_pdu.get_src_port()
             dst_ip = transport_layer_pdu.get_dst_ip()
@@ -46,7 +67,7 @@ class Blocker():
             # Packets in two directions belong to the same session
             tup = (src_ip, src_port, dst_ip, dst_port)
             flip_tup = (dst_ip, dst_port, src_ip, src_port)
-            if src_ip == '127.0.0.1' and dst_ip == '127.0.0.1':
+            if src_ip in whitelist or dst_ip in whitelist:
                 continue
             if tup in self.session_database:
                 self.session_database[tup].append(transport_layer_pdu)
@@ -84,14 +105,14 @@ class Blocker():
 
     def block_ip(self, ip):
         log.info(f"Blocked IP: {ip}")
-        # if self.validate_ip(ip):
-        #     subprocess.call(["sudo", "iptables", "-A",
-        #                     "INPUT", "-s", ip, "-j", "DROP"])
-        #     subprocess.call(["sudo", "iptables", "-A",
-        #                     "OUTPUT", "-s", ip, "-j", "DROP"])
-        #     self.block_list.append(ip)
-        # else:
-        #     log.warn(f"INVALID IP: {ip}")
+        if self.validate_ip(ip):
+            subprocess.call(["sudo", "iptables", "-A",
+                            "INPUT", "-s", ip, "-j", "DROP"])
+            subprocess.call(["sudo", "iptables", "-A",
+                            "OUTPUT", "-s", ip, "-j", "DROP"])
+            self.block_list.append(ip)
+        else:
+            log.warn(f"INVALID IP: {ip}")
 
     def clean_iptables(self):
         for ip in self.block_list:

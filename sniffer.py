@@ -12,13 +12,14 @@ from blocker import Blocker
 log = logging.getLogger("mylog")
 class Sniffer():
 
-    def __init__(self, hedge):
+    def __init__(self, hedge, whitelist):
         print("Created sniffer object")
         self.blocker_queue = Queue()
         self.socket = None
         host_ip = self.get_ip_address()
         self.blocker = Blocker(host_ip)
         self.blocker.set_hedge_flag(hedge)
+        self.blocker.set_whitelist_file(whitelist)
 
     def print_packet_info(self, ip_packet:IPPacket, pdu:TransportLayerPacket):
         parameters = [ip_packet.get_src_ip(), ip_packet.get_dst_ip(), ip_packet.get_protocol(),
