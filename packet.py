@@ -10,6 +10,8 @@ import socket
 from abc import ABC, ABCMeta, abstractmethod
 from time import time
 from tabulate import tabulate
+from scapy.layers.inet import IP, TCP 
+from scapy.all import raw
 
 # A list of IP Protocol numbers, taken directly from IANA.
 PROTO_NUMS = {
@@ -217,9 +219,6 @@ class TransportLayerPacket(Packet):
     def get_dst_port(self):
         pass
 
-    
-
-
 class IPPacket(Packet):
     """Base class for all packets"""
 
@@ -328,9 +327,45 @@ class TCPPacket(TransportLayerPacket):
     def get_dst_ip(self):
         return self._dst_ip
 
+
     # def __unicode__(self):
     #     """Returns a printable version of the TCP header"""
     #     return u'TCP from %d to %d, protocol:%d' % (self._src_port, self._dst_port)
+
+class TCPPacketScapy(TransportLayerPacket):
+    def __init__(self,scapy_packet):
+        self._dst_port = scapy_packet[TCP].dport
+        self._src_port = scapy_packet[TCP].sport
+        self._src_ip=scapy_packet[IP].src
+        self._dst_ip=scapy_packet[IP].dst
+        self.timestamp = scapy_packet.time
+        self._data_len = len(scapy_packet[TCP].payload)
+        self._body = bytes(scapy_packet[TCP].payload)
+        self._tcph_length = len(raw(scapy_packet[TCP])) - self._data_len 
+
+    def get_data_len(self):
+        return self._data_len
+
+    def get_header_len(self):
+        return self._tcph_length
+
+    def get_src_port(self):
+        return self._src_port
+
+    def get_timestamp(self):
+        return self.timestamp
+
+    def get_dst_port(self):
+        return self._dst_port
+
+    def get_body(self):
+        return self._body
+
+    def get_src_ip(self):
+        return self._src_ip
+
+    def get_dst_ip(self):
+        return self._dst_ip
 
 
 class UDPPacket(TransportLayerPacket):

@@ -6,8 +6,10 @@ from threading import Thread
 from multiprocessing import Queue
 import time
 import logging
-from packet import IPPacket, TCPPacket, TransportLayerPacket, UDPPacket
+from packet import IPPacket, TCPPacket, TCPPacketScapy, TransportLayerPacket, UDPPacket
 from blocker import Blocker
+from scapy.all import sniff,raw
+from scapy.layers.inet import IP, TCP 
 
 log = logging.getLogger("mylog")
 class Sniffer():
@@ -67,6 +69,24 @@ class Sniffer():
 
             self.blocker_queue.put(transport_layer_pdu)
 
+    def send_scapy_packet(self,scapy_packet):
+        if TCP in scapy_packet and IP in scapy_packet:
+            tcp_packet = TCPPacketScapy(scapy_packet)
+            # self.print_packet_data(tcp_packet)
+            self.blocker_queue.put(tcp_packet)
+
+    def run_local(self):
+        self.blocker.init_queue(self.blocker_queue)
+        self.block_thread = Thread(target=self.blocker.run, daemon=False)
+        self.block_thread.start()
+        
+        log.info("Running local version of Sniffer.")
+        sniff(iface='enp34s0', filter="tcp", prn=self.send_scapy_packet)
+
     def stop(self):
         self.socket.close()
         log.warn(f"[SNIFFER]: CTRL+C detected. Stopping program.")
+
+if __name__ == '__main__':
+    sniffer = Sniffer(None,None)
+    sniffer.run_local()

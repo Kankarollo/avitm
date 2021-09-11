@@ -52,7 +52,7 @@ class Blocker():
             transport_layer_pdu = None
             try:
                 transport_layer_pdu: TransportLayerPacket = self.queue.get(
-                    timeout=5)
+                    timeout=180)
             except queue.Empty as e:
                 print(str(e))
                 self.stop()
@@ -67,6 +67,8 @@ class Blocker():
             # Packets in two directions belong to the same session
             tup = (src_ip, src_port, dst_ip, dst_port)
             flip_tup = (dst_ip, dst_port, src_ip, src_port)
+            if (src_ip == "192.168.0.17" and dst_ip == "192.168.0.61") or (src_ip == "192.168.0.61" and dst_ip == "192.168.0.17"):
+                log.info("HURRRRRRRRRRRAAAAAAAAAAAAAAA!!!!!!!!!!!!!!")
             if src_ip in whitelist or dst_ip in whitelist:
                 continue
             if tup in self.session_database:

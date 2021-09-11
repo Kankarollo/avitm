@@ -1,3 +1,4 @@
+from scapy.sendrecv import sniff
 from sniffer import Sniffer
 from argparse import ArgumentParser
 import datetime
@@ -17,7 +18,10 @@ def main(args):
     sniffer = Sniffer(hedge, whitelist=whitelist)
 
     try:
-        sniffer.run()
+        if args.debug:
+            sniffer.run_local()
+        else:    
+            sniffer.run()
     except KeyboardInterrupt as e:
         print(str(e))
         sniffer.stop()
@@ -39,6 +43,8 @@ if __name__ == '__main__':
         help="Option for using analyzing packets with HEDGE.")
     parser.add_argument("-w", "--whitelist",type=str, dest='whitelist', 
         help="Path to file for whitelisting IPs.")
+    parser.add_argument("--debug", default=False, dest='debug', action='store_true', 
+        help="Option for using AVitM for testing with virtual environment. AVitM is usin scapy to catch packets.")
     # parser.add_argument("--hedge", metavar='f', type=str, default=datetime.datetime.today().strftime("%Y-%m-%d"), help="Filename of logging file (Default: today's date).")
 
     args = parser.parse_args()

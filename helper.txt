@@ -1,0 +1,7 @@
+\item test - Folder przechowujący zbiór testów rozpoznających zaszyfrowane pliki. Więcej szczegółów znajduje się w podpunkcie rozpoznawania zaszyfrowanych danych.
+    \item ai_analyzer.py - Plik zawierający kod opisujący klasę AIanalyzer. Zawiera metody dotyczące analizy za pomocą modeli uczenia maszynowego.
+    \item analyzer.py - Plik zawierający kod opisujący klasę Analyzer. Zawiera metody wykonujące analizę sesji sieciowych w celu wykrycia złośliwego ruchu.
+    \item blocker.py - Plik zawierający kod opisujący klasę Blocker. Zawiera metody wykonujące odpowiednie przetworzenie danych, podanie ich do analizy, oraz zablokowanie komunikacji z danym adresem IP w przypadku sklasyfikowania go jako złośliwego. 
+    \item hedge.py
+
+sudo -E python3 main.py -w whitelist.txt -f log.log --hedge
